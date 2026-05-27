@@ -1,0 +1,28 @@
+{
+  "name": "russ-grey-analog",
+  "author": "OpenAI Codex",
+  "version": "1.0.0",
+  "keywords": [
+    "pebble-app",
+    "watchface"
+  ],
+  "private": true,
+  "dependencies": {},
+  "pebble": {
+    "displayName": "Russ Grey Analog",
+    "uuid": "3d0e63d7-913d-4938-9f18-9c48f2f78f48",
+    "sdkVersion": "4",
+    "enableMultiJS": true,
+    "targetPlatforms": [
+      "basalt",
+      "chalk",
+      "emery"
+    ],
+    "watchapp": {
+      "watchface": true
+    },
+    "resources": {
+      "media": []
+    }
+  }
+}
