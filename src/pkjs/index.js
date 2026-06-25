@@ -1,6 +1,15 @@
+var STORAGE_KEY_TEMPERATURE = 'lastTemperature';
+var PLACEHOLDER_TEMPERATURE = '--°';
+var lastTemperature = localStorage.getItem(STORAGE_KEY_TEMPERATURE);
+
 function sendTemperature(value) {
+  lastTemperature = value;
+  if (value !== PLACEHOLDER_TEMPERATURE) {
+    localStorage.setItem(STORAGE_KEY_TEMPERATURE, value);
+  }
+
   Pebble.sendAppMessage({
-    0: value
+    TEMPERATURE: value
   }, function() {
     console.log('temperature sent: ' + value);
   }, function(error) {
@@ -10,7 +19,9 @@ function sendTemperature(value) {
 
 function requestTemperature() {
   if (!navigator.geolocation) {
-    sendTemperature('--°');
+    if (lastTemperature === null) {
+      sendTemperature(PLACEHOLDER_TEMPERATURE);
+    }
     return;
   }
 
@@ -35,21 +46,27 @@ function requestTemperature() {
         console.log('weather parse failed: ' + e);
       }
 
-      sendTemperature('--°');
+      if (lastTemperature === null) {
+        sendTemperature(PLACEHOLDER_TEMPERATURE);
+      }
     };
 
     xhr.onerror = function() {
-      sendTemperature('--°');
+      if (lastTemperature === null) {
+        sendTemperature(PLACEHOLDER_TEMPERATURE);
+      }
     };
 
     xhr.open('GET', url);
     xhr.send();
   }, function(error) {
     console.log('geolocation failed: ' + JSON.stringify(error));
-    sendTemperature('--°');
+    if (lastTemperature === null) {
+      sendTemperature(PLACEHOLDER_TEMPERATURE);
+    }
   }, {
     enableHighAccuracy: false,
-    maximumAge: 30 * 60 * 1000,
+    maximumAge: 60 * 1000,
     timeout: 15000
   });
 }
@@ -61,5 +78,7 @@ Pebble.addEventListener('ready', function() {
 
 Pebble.addEventListener('appmessage', function(e) {
   console.log('appmessage received: ' + JSON.stringify(e.payload || {}));
-  requestTemperature();
+  if (e.payload && e.payload.REQUEST_WEATHER) {
+    requestTemperature();
+  }
 });

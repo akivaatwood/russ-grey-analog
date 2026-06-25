@@ -2,12 +2,15 @@
 
 static const int16_t s_emblem_y_offset = 2;
 static char s_temperature_text[8] = "--°";
-static const uint32_t KEY_TEMPERATURE = 0;
-static const uint32_t KEY_WEATHER_REQUEST = 1;
+static const uint32_t PERSIST_KEY_TEMPERATURE_TEXT = 1;
 
 static Window *s_main_window;
 static Layer *s_canvas_layer;
 static GBitmap *s_center_emblem;
+
+static bool is_placeholder_temperature(const char *value) {
+  return strcmp(value, "--°") == 0;
+}
 
 static void request_temperature_update(void) {
   DictionaryIterator *iter;
@@ -15,15 +18,21 @@ static void request_temperature_update(void) {
     return;
   }
 
-  dict_write_uint8(iter, KEY_WEATHER_REQUEST, 1);
+  dict_write_uint8(iter, MESSAGE_KEY_REQUEST_WEATHER, 1);
   dict_write_end(iter);
   app_message_outbox_send();
 }
 
 static void inbox_received_callback(DictionaryIterator *iterator, void *context) {
-  Tuple *temperature_t = dict_find(iterator, KEY_TEMPERATURE);
-  if (temperature_t) {
+  Tuple *temperature_t = dict_find(iterator, MESSAGE_KEY_TEMPERATURE);
+  if (temperature_t && temperature_t->type == TUPLE_CSTRING && strlen(temperature_t->value->cstring) > 0) {
+    if (is_placeholder_temperature(temperature_t->value->cstring) &&
+        !is_placeholder_temperature(s_temperature_text)) {
+      return;
+    }
+
     snprintf(s_temperature_text, sizeof(s_temperature_text), "%s", temperature_t->value->cstring);
+    persist_write_string(PERSIST_KEY_TEMPERATURE_TEXT, s_temperature_text);
     if (s_canvas_layer) {
       layer_mark_dirty(s_canvas_layer);
     }
@@ -100,7 +109,7 @@ static void canvas_update_proc(Layer *layer, GContext *ctx) {
 }
 
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
-  if (tick_time->tm_min % 30 == 0) {
+  if (tick_time->tm_min % 5 == 0) {
     request_temperature_update();
   }
   layer_mark_dirty(s_canvas_layer);
@@ -124,6 +133,10 @@ static void main_window_unload(Window *window) {
 }
 
 static void init(void) {
+  if (persist_exists(PERSIST_KEY_TEMPERATURE_TEXT)) {
+    persist_read_string(PERSIST_KEY_TEMPERATURE_TEXT, s_temperature_text, sizeof(s_temperature_text));
+  }
+
   app_message_register_inbox_received(inbox_received_callback);
   app_message_open(128, 128);
 

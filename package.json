@@ -9,7 +9,8 @@
         "displayName": "Logan Watchface",
         "enableMultiJS": true,
         "messageKeys": [
-            "TEMPERATURE"
+            "TEMPERATURE",
+            "REQUEST_WEATHER"
         ],
         "projectType": "native",
         "resources": {
